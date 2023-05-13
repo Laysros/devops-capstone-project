@@ -62,6 +62,20 @@ def create_accounts():
 ######################################################################
 
 # ... place you code here to LIST accounts ...
+@app.route("/accounts", methods=["GET"])
+def list_accounts():
+    """
+    List all Accounts
+    This endpoint will list all Accounts
+    """
+    app.logger.info("Request to list Accounts")
+
+    accounts = Account.all()
+    account_list = [account.serialize() for account in accounts]
+    app.logger.info("List all found [%s] account", len(account_list))
+
+    return jsonify(account_list), status.HTTP_200_OK
+
 
 
 ######################################################################
@@ -72,19 +86,19 @@ def create_accounts():
     ######################################################################
     # READ AN ACCOUNT
     ######################################################################
-    @app.route("/accounts/<int:account_id>", methods=["GET"])
-    def get_accounts(account_id):
-        """
-        Reads an Account
-        This endpoint will read an Account based the account_id that is requested
-        """
-        app.logger.info("Request to read an Account with id: %s", account_id)
+@app.route("/accounts/<int:account_id>", methods=["GET"])
+def get_accounts(account_id):
+    """
+    Reads an Account
+    This endpoint will read an Account based the account_id that is requested
+    """
+    app.logger.info("Request to read an Account with id: %s", account_id)
 
-        account = Account.find(account_id)
-        if not account:
-            abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+    account = Account.find(account_id)
+    if not account:
+        abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
 
-        return account.serialize(), status.HTTP_200_OK
+    return account.serialize(), status.HTTP_200_OK
 
 ######################################################################
 # UPDATE AN EXISTING ACCOUNT
@@ -92,13 +106,43 @@ def create_accounts():
 
 # ... place you code here to UPDATE an account ...
 
+@app.route("/accounts/<int:account_id>", methods=["PUT"])
+def update_account(account_id):
+    """
+    Update an existing Account
+    This endpoint will update an existing Account based on provided account info and account_id
+    """
+    app.logger.info("Request to update account with account_id: %s", account_id)
+    check_content_type("application/json")
 
+    account = Account.find(account_id)
+    if not account:
+        abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+
+    update_account = Account()
+    update_account.deserialize(request.get_json())
+    update_account.id = account_id
+    update_account.update()
+
+    return jsonify(update_account.serialize()), status.HTTP_200_OK
 ######################################################################
 # DELETE AN ACCOUNT
 ######################################################################
 
 # ... place you code here to DELETE an account ...
+@app.route("/accounts/<int:account_id>", methods=["DELETE"])
+def delete_account(account_id):
+    """
+    Delete an existing Account
+    This endpoint will delete an existing Account based on provided account_id
+    """
+    app.logger.info("Request to delete account with account_id: %s", account_id)
 
+    account = Account.find(account_id)
+    if account:
+        account.delete()
+
+    return "", status.HTTP_204_NO_CONTENT
 
 ######################################################################
 #  U T I L I T Y   F U N C T I O N S
@@ -115,8 +159,3 @@ def check_content_type(media_type):
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         f"Content-Type must be {media_type}",
     )
-
-    def test_get_account_not_found(self):
-        """It should not Read an Account that is not found"""
-        resp = self.client.get(f"{BASE_URL}/0")
-        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
